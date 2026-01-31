@@ -1,0 +1,574 @@
+// The Living Bread - Database Schema
+// "I am the living bread that came down from heaven" - John 6:51
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USER & PROFILE
+// ==========================================
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  displayName       String?  // Optional - focus is on spiritual identity
+  avatarUrl         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Spiritual journey
+  testimonial       String?  @db.Text // How they came to know Christ
+  spiritualGifts    String[] // Gifts they've identified
+
+  // Location for connecting with nearby believers
+  country           String?
+  region            String?
+  city              String?
+  latitude          Float?
+  longitude         Float?
+
+  // Privacy settings
+  isAnonymous       Boolean  @default(false)
+  showLocation      Boolean  @default(true)
+
+  // Relations
+  profile           Profile?
+  contentActivities ContentActivity[]
+  manualEntries     ManualEntry[]
+  prayersOffered    Prayer[]        @relation("PrayerOfferer")
+  prayersReceived   Prayer[]        @relation("PrayerReceiver")
+  confessionsGiven  Confession[]    @relation("Confessor")
+  forgivenessGiven  Forgiveness[]   @relation("Forgiver")
+  encouragementsGiven Encouragement[] @relation("Encourager")
+  encouragementsReceived Encouragement[] @relation("Encouraged")
+  resourcesOffered  ResourceOffer[]
+  resourceRequests  ResourceRequest[]
+  serviceListings   ServiceListing[]
+  communityPosts    CommunityPost[]
+  comments          Comment[]
+  reactions         Reaction[]
+  immanuelChats     ImmanuelChat[]
+  devotionalProgress DevotionalProgress[]
+  challengeProgress ChallengeProgress[]
+  membershipCard    MembershipCard?
+
+  @@index([country, region])
+  @@index([createdAt])
+}
+
+model Profile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Impact statistics (cached for performance)
+  totalPrayers    Int      @default(0)
+  totalForgiveness Int     @default(0)
+  totalEncouragements Int  @default(0)
+  totalTimeWithChrist Int  @default(0) // in minutes
+  totalContentShared Int   @default(0)
+  totalResourcesGiven Int  @default(0)
+  totalResourcesReceived Int @default(0)
+  totalLivesFed    Int     @default(0)
+  totalShelterGiven Int    @default(0)
+  totalClothingGiven Int   @default(0)
+
+  // Streaks
+  currentStreak   Int      @default(0) // Days of consecutive activity
+  longestStreak   Int      @default(0)
+  lastActiveDate  DateTime?
+
+  updatedAt       DateTime @updatedAt
+}
+
+// ==========================================
+// CONTENT TRACKING - "Time with Christ"
+// ==========================================
+
+enum ContentType {
+  SERMON
+  DEVOTIONAL
+  BIBLE_READING
+  WORSHIP_MUSIC
+  PODCAST
+  VIDEO
+  ARTICLE
+  PRAYER_GUIDE
+  TESTIMONY
+  OTHER
+}
+
+enum ActivityType {
+  READ
+  WATCH
+  LISTEN
+  SHARE
+  LIKE
+  COMMENT
+  POST
+  SAVE
+}
+
+model ContentActivity {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  contentType     ContentType
+  activityType    ActivityType
+
+  // Content details
+  title           String?
+  source          String?      // URL or app name
+  platform        String?      // e.g., "YouTube", "Bible App", "Spotify"
+
+  // Tracking
+  durationMinutes Int          @default(0)
+  timestamp       DateTime     @default(now())
+
+  // Device info
+  deviceType      String?      // "mobile" or "desktop"
+
+  @@index([userId, timestamp])
+  @@index([contentType])
+  @@index([timestamp])
+}
+
+model ManualEntry {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category        String       // "prayer", "bible_study", "worship", "fellowship", etc.
+  description     String?      @db.Text
+  durationMinutes Int          @default(0)
+  timestamp       DateTime     @default(now())
+
+  // Optional scripture reference
+  scriptureRef    String?
+
+  @@index([userId, timestamp])
+}
+
+// ==========================================
+// PRAYER & SPIRITUAL SUPPORT
+// ==========================================
+
+model Prayer {
+  id              String   @id @default(cuid())
+  offererId       String
+  offerer         User     @relation("PrayerOfferer", fields: [offererId], references: [id], onDelete: Cascade)
+  receiverId      String?
+  receiver        User?    @relation("PrayerReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
+
+  prayerType      String   // "intercession", "thanksgiving", "praise", "petition", "community"
+  intention       String?  @db.Text
+  isAnonymous     Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+
+  @@index([offererId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+model Confession {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation("Confessor", fields: [userId], references: [id], onDelete: Cascade)
+
+  content         String       @db.Text
+  isAnonymous     Boolean      @default(true)
+
+  createdAt       DateTime     @default(now())
+
+  // Forgiveness received
+  forgivenesses   Forgiveness[]
+
+  @@index([createdAt])
+}
+
+model Forgiveness {
+  id              String     @id @default(cuid())
+  confessionId    String
+  confession      Confession @relation(fields: [confessionId], references: [id], onDelete: Cascade)
+  forgiverId      String
+  forgiver        User       @relation("Forgiver", fields: [forgiverId], references: [id], onDelete: Cascade)
+
+  message         String?    @db.Text
+  createdAt       DateTime   @default(now())
+
+  @@unique([confessionId, forgiverId])
+}
+
+model Encouragement {
+  id              String   @id @default(cuid())
+  encouragerId    String
+  encourager      User     @relation("Encourager", fields: [encouragerId], references: [id], onDelete: Cascade)
+  encouragedId    String
+  encouraged      User     @relation("Encouraged", fields: [encouragedId], references: [id], onDelete: Cascade)
+
+  message         String   @db.Text
+  scriptureRef    String?  // Optional scripture to accompany
+
+  createdAt       DateTime @default(now())
+
+  @@index([encouragerId])
+  @@index([encouragedId])
+}
+
+// ==========================================
+// RESOURCE SHARING - Acts of Service
+// ==========================================
+
+enum ResourceCategory {
+  FOOD
+  SHELTER
+  CLOTHING
+  TRANSPORTATION
+  FINANCIAL
+  MEDICAL
+  CHILDCARE
+  EDUCATION
+  EMPLOYMENT
+  SPIRITUAL
+  OTHER
+}
+
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  FULFILLED
+  CANCELLED
+}
+
+model ResourceOffer {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category        ResourceCategory
+  title           String
+  description     String           @db.Text
+
+  // Location
+  country         String
+  region          String?
+  city            String?
+
+  // Availability
+  isAvailable     Boolean          @default(true)
+  availableFrom   DateTime?
+  availableUntil  DateTime?
+
+  // Fulfillment tracking
+  timesFulfilled  Int              @default(0)
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([category, country])
+  @@index([isAvailable])
+}
+
+model ResourceRequest {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category        ResourceCategory
+  title           String
+  description     String           @db.Text
+  urgency         String           @default("normal") // "low", "normal", "high", "urgent"
+
+  // Location
+  country         String
+  region          String?
+  city            String?
+
+  status          RequestStatus    @default(OPEN)
+  fulfilledAt     DateTime?
+  fulfilledById   String?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([category, country, status])
+  @@index([urgency])
+}
+
+model ServiceListing {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String   @db.Text
+  category        String   // "tutoring", "counseling", "handiwork", "driving", etc.
+
+  // Skills/gifts involved
+  skills          String[]
+
+  // Availability
+  isAvailable     Boolean  @default(true)
+
+  // Location scope
+  isRemote        Boolean  @default(false)
+  country         String?
+  region          String?
+  city            String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@index([isAvailable])
+}
+
+// ==========================================
+// COMMUNITY FEED
+// ==========================================
+
+enum PostType {
+  TESTIMONY
+  PRAYER_REQUEST
+  PRAISE_REPORT
+  ENCOURAGEMENT
+  QUESTION
+  SCRIPTURE_SHARE
+  ANNOUNCEMENT
+  DEVOTIONAL_SHARE
+}
+
+model CommunityPost {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postType        PostType
+  content         String    @db.Text
+  scriptureRef    String?
+
+  isAnonymous     Boolean   @default(false)
+  isPinned        Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  comments        Comment[]
+  reactions       Reaction[]
+
+  @@index([postType])
+  @@index([createdAt])
+}
+
+model Comment {
+  id              String        @id @default(cuid())
+  postId          String
+  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  content         String        @db.Text
+  isAnonymous     Boolean       @default(false)
+
+  createdAt       DateTime      @default(now())
+
+  @@index([postId])
+}
+
+enum ReactionType {
+  PRAY      // 🙏
+  AMEN      // ✝️
+  LOVE      // ❤️
+  ENCOURAGE // 💪
+  GRATEFUL  // 🙌
+}
+
+model Reaction {
+  id              String        @id @default(cuid())
+  postId          String
+  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type            ReactionType
+
+  createdAt       DateTime      @default(now())
+
+  @@unique([postId, userId, type])
+}
+
+// ==========================================
+// IMMANUEL AI ASSISTANT
+// ==========================================
+
+model ImmanuelChat {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  messages        ImmanuelMessage[]
+
+  @@index([userId])
+}
+
+model ImmanuelMessage {
+  id              String       @id @default(cuid())
+  chatId          String
+  chat            ImmanuelChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  role            String       // "user" or "assistant"
+  content         String       @db.Text
+
+  // If Immanuel referenced scripture
+  scriptureRefs   String[]
+
+  createdAt       DateTime     @default(now())
+
+  @@index([chatId])
+}
+
+// ==========================================
+// DEVOTIONALS & SPIRITUAL CHALLENGES
+// ==========================================
+
+model Devotional {
+  id              String               @id @default(cuid())
+  title           String
+  content         String               @db.Text
+  scriptureRef    String
+  author          String?
+
+  // Scheduling
+  dayNumber       Int?                 // For multi-day devotionals
+
+  createdAt       DateTime             @default(now())
+
+  progress        DevotionalProgress[]
+}
+
+model DevotionalProgress {
+  id              String     @id @default(cuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devotionalId    String
+  devotional      Devotional @relation(fields: [devotionalId], references: [id], onDelete: Cascade)
+
+  completedAt     DateTime   @default(now())
+  reflection      String?    @db.Text
+
+  @@unique([userId, devotionalId])
+}
+
+model Challenge {
+  id              String              @id @default(cuid())
+  title           String
+  description     String              @db.Text
+  category        String              // "forgiveness", "reflection", "gratitude", "outreach"
+
+  // Prompts for deep reflection
+  prompts         String[]
+
+  duration        Int                 // in days
+
+  createdAt       DateTime            @default(now())
+
+  progress        ChallengeProgress[]
+}
+
+model ChallengeProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId     String
+  challenge       Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+
+  // Responses to prompts
+  responses       Json?
+
+  @@unique([userId, challengeId])
+}
+
+// ==========================================
+// MEMBERSHIP
+// ==========================================
+
+model MembershipCard {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cardNumber      String   @unique
+  issuedAt        DateTime @default(now())
+  expiresAt       DateTime?
+
+  // Benefits tracking
+  discountsUsed   Int      @default(0)
+
+  isActive        Boolean  @default(true)
+}
+
+// ==========================================
+// GLOBAL STATISTICS - Kingdom Dashboard
+// ==========================================
+
+model GlobalStats {
+  id                    String   @id @default(cuid())
+  date                  DateTime @unique @default(now()) @db.Date
+
+  // Aggregated daily stats
+  totalUsers            Int      @default(0)
+  newUsersToday         Int      @default(0)
+
+  totalPrayers          Int      @default(0)
+  prayersToday          Int      @default(0)
+
+  totalForgiveness      Int      @default(0)
+  forgivenessToday      Int      @default(0)
+
+  totalEncouragements   Int      @default(0)
+  encouragementsToday   Int      @default(0)
+
+  totalTimeWithChrist   Int      @default(0) // in minutes
+  timeWithChristToday   Int      @default(0)
+
+  totalResourcesShared  Int      @default(0)
+  resourcesSharedToday  Int      @default(0)
+
+  totalLivesFed         Int      @default(0)
+  livesFedToday         Int      @default(0)
+
+  totalShelterProvided  Int      @default(0)
+  shelterProvidedToday  Int      @default(0)
+
+  totalClothingGiven    Int      @default(0)
+  clothingGivenToday    Int      @default(0)
+}
+
+model CountryStats {
+  id                    String   @id @default(cuid())
+  date                  DateTime @default(now()) @db.Date
+  country               String
+
+  userCount             Int      @default(0)
+  prayerCount           Int      @default(0)
+  forgivenessCount      Int      @default(0)
+  resourcesShared       Int      @default(0)
+  timeWithChrist        Int      @default(0)
+
+  @@unique([date, country])
+  @@index([country])
+}
