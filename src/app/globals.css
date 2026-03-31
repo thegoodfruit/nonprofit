@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --primary: 36 100% 62%;
+    --primary-foreground: 60 9.1% 97.8%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 24 9.8% 10%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --accent: 60 4.8% 95.9%;
+    --accent-foreground: 24 9.8% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 20 5.9% 90%;
+    --input: 20 5.9% 90%;
+    --ring: 36 100% 50%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .scripture-text {
+    @apply font-scripture italic text-bread-800;
+  }
+
+  .card-glass {
+    @apply bg-white/80 backdrop-blur-sm border border-bread-200/50 shadow-lg;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-bread-500 to-kingdom-500 text-white
+           hover:from-bread-600 hover:to-kingdom-600
+           shadow-lg hover:shadow-xl transition-all duration-200
+           font-semibold px-6 py-3 rounded-xl;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-bread-700 border-2 border-bread-300
+           hover:bg-bread-50 hover:border-bread-400
+           transition-all duration-200
+           font-semibold px-6 py-3 rounded-xl;
+  }
+
+  .stat-card {
+    @apply card-glass rounded-2xl p-6
+           hover:shadow-xl hover:scale-[1.02]
+           transition-all duration-300 ease-out;
+  }
+
+  .glow-effect {
+    @apply relative overflow-hidden;
+  }
+
+  .glow-effect::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-bread-400/20 to-kingdom-400/20
+           blur-xl opacity-0 transition-opacity duration-500;
+  }
+
+  .glow-effect:hover::before {
+    @apply opacity-100;
+  }
+
+  .dashboard-grid {
+    @apply grid gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .impact-number {
+    @apply text-4xl md:text-5xl font-bold
+           bg-gradient-to-r from-bread-600 to-kingdom-600
+           bg-clip-text text-transparent;
+  }
+
+  .section-title {
+    @apply text-2xl md:text-3xl font-serif font-bold text-bread-900;
+  }
+
+  .badge-pill {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-bread-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-bread-300 rounded-full hover:bg-bread-400;
+}
+
+/* Leaflet map overrides */
+.leaflet-container {
+  @apply rounded-xl;
+}
